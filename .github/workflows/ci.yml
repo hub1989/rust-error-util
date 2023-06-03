@@ -1,0 +1,25 @@
+name: deploy pipeline stage
+on:
+  push:
+    branches-ignore:
+      - 'main'
+    tags-ignore:
+      - '**'
+
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      id-token: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout code
+
+      - name: push to cargo
+        run: |
+          cargo test
+          cargo build

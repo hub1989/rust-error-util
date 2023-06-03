@@ -1,0 +1,46 @@
+name: deploy pipeline stage
+on:
+  push:
+    tags:
+      - '**'
+
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      id-token: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout code
+
+      - name: push to cargo
+        run: |
+          cargo login ${{ secrets.CARGO_TOKEN }}
+          cargo install cargo-bump
+          cargo bump ${{ github.ref_name }}
+          cargo build
+          cargo publish --no-verify --allow-dirty
+
+  create-release:
+    runs-on: ubuntu-latest
+    name: create new release
+    needs:
+      - deploy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Build Changelog
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Create Release
+        uses: mikepenz/action-gh-release@v0.2.0-a03 #softprops/action-gh-release
+        with:
+          body: ${{steps.github_release.outputs.changelog}}
